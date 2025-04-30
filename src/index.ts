@@ -90,7 +90,7 @@ bandpassFilter.toDestination();
 
 
 const analyzer = new Tone.Analyser("fft", 1024);
-tilt.output.connect(analyzer);
+bandpassFilter.connect(analyzer);
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
 const canvasContext = canvas.getContext('2d')!;
@@ -144,13 +144,14 @@ function updateSynthParameter(param: string, value: number) {
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
         case 'detune':
             tilt.setGain(mapDetuneValue(value))
-            // Map 0-100 to a frequency range for the bandpass filter
-            const minFreq = 30;
-            const maxFreq = 20000;
-            const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
-            bandpassFilter.frequency.value = logFreq;
             break;
         case 'attack':
+            // Map 0-100 to a frequency range for the bandpass filter
+            const minFreq = 100;
+            const maxFreq = 5000;
+            const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
+            console.log(logFreq)
+            bandpassFilter.frequency.value = logFreq;
             break;
         case 'release':
             break;
