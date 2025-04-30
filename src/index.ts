@@ -1,7 +1,7 @@
 import * as Tone from "tone";
 
 const volumeSlider = document.getElementById('volume') as HTMLInputElement;
-const detuneSlider = document.getElementById('detune') as HTMLInputElement;
+const tiltSlider = document.getElementById('detune') as HTMLInputElement;
 const attackSlider = document.getElementById('attack') as HTMLInputElement;
 const releaseSlider = document.getElementById('release') as HTMLInputElement;
 
@@ -73,33 +73,48 @@ export class TiltEQ {
 // Create a white noise synth
 const synth = new Tone.Noise("white");
 const crossFade = new Tone.CrossFade(0.5); // Initial mix value
-
 const bandpassFilter = new Tone.Filter({
     type: "bandpass",
     frequency: 1000, // Default frequency
-    Q: 1 // Quality factor
+    Q: 2 // Quality factor
 });
 
 const tilt = new TiltEQ({
     pivot: PIVOT_FREQ,
-    gainDb: mapDetuneValue(detuneSlider.value)
+    gainDb: mapDetuneValue(tiltSlider.value)
 })
+
+const lfo = new Tone.LFO({
+    frequency: 1, // LFO frequency in Hz
+    min: 50,       // Minimum frequency of the bandpass filter
+    max: 10000       // Maximum frequency of the bandpass filter
+});
+
+const outputGain = new Tone.Gain(0.5)
+
+// Connect the LFO to the frequency of the bandpass filter
 
 synth.connect(tilt.input)
 const output = tilt.output
-output.connect(crossFade.a); // Dry signal
-bandpassFilter.connect(crossFade.b); // Wet signal
-crossFade.connect(Tone.Destination);
+output.connect(bandpassFilter)
+output.connect(crossFade.a);
+bandpassFilter.connect(crossFade.b);
+
+crossFade.connect(outputGain);
+outputGain.connect(Tone.Destination);
+
+lfo.connect(bandpassFilter.frequency);
+
+lfo.start();
+
 function setBandpassMix(mix: number) {
-    crossFade.fade.value = mix; // mix should be between 0 (dry) and 1 (wet)
+  crossFade.fade.value = mix; // mix should be between 0 (dry) and 1 (wet)
 }
 
-// Example usage: set the mix to 0.7
-setBandpassMix(0.7);
 
 
 const analyzer = new Tone.Analyser("fft", 1024);
-bandpassFilter.connect(analyzer);
+crossFade.connect(analyzer);
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
 const canvasContext = canvas.getContext('2d')!;
@@ -146,25 +161,18 @@ playPauseButton.addEventListener('click', togglePlayPause);
 function updateSynthParameter(param: string, value: number) {
     switch (param) {
         case 'volume':
-            // Logarithmic mapping: 0-100 to 0 to -60
-            const minVolume = -60;
-            const maxVolume = 0;
-            const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
-            synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
+            outputGain.gain.value = value / 100
+
         case 'detune':
             tilt.setGain(mapDetuneValue(value))
             break;
         case 'attack':
-            // Map 0-100 to a frequency range for the bandpass filter
-            const minFreq = 100;
-            const maxFreq = 5000;
-            const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
-            console.log(logFreq)
-            bandpassFilter.frequency.value = logFreq;
+            lfo.frequency.value = value/1000
             break;
         case 'release':
-            // Map 0-100 to 0-10 for the Q value of the bandpass filter
-            bandpassFilter.Q.value = (value / 100) * 10;
+            console.log("release", value/50 + 1)
+            bandpassFilter.Q.value = value/50 + 1
+            setBandpassMix(value / 100)
             break;
     }
 }
@@ -175,8 +183,8 @@ volumeSlider.addEventListener('input', (event) => {
     updateSynthParameter('volume', value);
 });
 
-detuneSlider.addEventListener('input', (event) => {
-    const value = parseFloat(detuneSlider.value);
+tiltSlider.addEventListener('input', (event) => {
+    const value = parseFloat(tiltSlider.value);
     updateSynthParameter('detune', value);
 });
 
