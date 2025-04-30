@@ -72,6 +72,8 @@ export class TiltEQ {
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white");
+const crossFade = new Tone.CrossFade(0.5); // Initial mix value
+
 const bandpassFilter = new Tone.Filter({
     type: "bandpass",
     frequency: 1000, // Default frequency
@@ -85,8 +87,15 @@ const tilt = new TiltEQ({
 
 synth.connect(tilt.input)
 const output = tilt.output
-output.connect(bandpassFilter);
-bandpassFilter.toDestination();
+output.connect(crossFade.a); // Dry signal
+bandpassFilter.connect(crossFade.b); // Wet signal
+crossFade.connect(Tone.Destination);
+function setBandpassMix(mix: number) {
+    crossFade.fade.value = mix; // mix should be between 0 (dry) and 1 (wet)
+}
+
+// Example usage: set the mix to 0.7
+setBandpassMix(0.7);
 
 
 const analyzer = new Tone.Analyser("fft", 1024);
