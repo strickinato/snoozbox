@@ -2,7 +2,8 @@
   "name": "vite-project",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build --outDir dist"
   },
   "dependencies": {
     "tone": "^14.8.39"
