@@ -13,7 +13,7 @@ const tiltFilter = new Tone.Filter({
 
 synth.connect(tiltFilter);
 
-const analyzer = new Tone.Analyser("fft", 256);
+const analyzer = new Tone.Analyser("fft", 1024);
 tiltFilter.connect(analyzer);
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
@@ -29,7 +29,7 @@ function drawSpectrum() {
 
     values.forEach((value, index) => {
         const x = (index / values.length) * canvas.width;
-        const y = (1 - (value as number) / 100) * canvas.height;
+        const y = (1 - ((value as number) + 140) / 140) * canvas.height; // Adjust for dB range
         canvasContext.lineTo(x, y);
     });
 
