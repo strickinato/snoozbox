@@ -8,4 +8,5 @@ export default defineConfig({
     rollupOptions: {
       input: 'src/index.html',
     },
+  }
 });
