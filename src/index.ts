@@ -20,7 +20,7 @@ const initialVolumeValue = mapVolumeValue(parseFloat(volumeSlider.value))
 
 function mapLfoValue(normal) {
     // Non-linear scaling for LFO frequency
-    const minLFOFreq = 0.005;
+    const minLFOFreq = 0.01;
     const midLFOFreq = 0.05;
     const maxLFOFreq = 500;
     const scaledValue = normal / 100; // Normalize to 0-1
@@ -134,7 +134,8 @@ function updateSynthParameter(param: string, value: number) {
             lfo.frequency.value = mapLfoValue(value)
             break;
         case 'quality':
-            bandpassFilter.Q.value = value/50 + 1
+            bandpassFilter.Q.value = 2
+            bandpassFilter.gain.value = 1 + (value / 20)
             crossFade.fade.value = (value / 100)
             break;
     }
