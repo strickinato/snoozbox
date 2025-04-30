@@ -4,7 +4,14 @@ console.log("Hello, World!");
 
 // Example usage of Tone.js
 // Create a white noise synth
-const synth = new Tone.Noise("white").toDestination();
+const noise = new Tone.Noise("white");
+const tiltFilter = new Tone.Filter({
+    type: "lowshelf",
+    frequency: 1000,
+    gain: 0
+}).toDestination();
+
+noise.connect(tiltFilter);
 
 let isPlaying = false;
 
@@ -34,8 +41,12 @@ function updateSynthParameter(param: string, value: number) {
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
             break;
-        case 'detune':
-            synth.detune.value = (value / 100) * 2400 - 1200; // Map 0-100 to -1200 to 1200
+        case 'detune': {
+            // Map 0-100 to -20 to 20 dB for the tilt filter gain
+            const gainValue = (value / 100) * 40 - 20;
+            tiltFilter.gain.value = gainValue;
+            break;
+        }
             break;
         case 'attack':
             synth.envelope.attack = value / 100; // Map 0-100 to 0-1
