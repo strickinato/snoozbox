@@ -157,3 +157,7 @@ releaseSlider.addEventListener('input', (event) => {
     const value = parseFloat(releaseSlider.value);
     updateSynthParameter('release', value);
 });
+const volumeSlider = document.getElementById('volume') as HTMLInputElement;
+const detuneSlider = document.getElementById('detune') as HTMLInputElement;
+const attackSlider = document.getElementById('attack') as HTMLInputElement;
+const releaseSlider = document.getElementById('release') as HTMLInputElement;
