@@ -76,10 +76,10 @@ function updateSynthParameter(param: string, value: number) {
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
             break;
         case 'detune': {
-            // Map 0-100 to -20 to 20 dB for the tilt filter gain
-            const gainValue = (value / 100) * 40 - 20;
-            lowShelf.gain.value = gainValue;
-            highShelf.gain.value = -gainValue; // Inverse gain for high shelf
+            // Map 0-100 to 0 to 20 dB for the low shelf and -20 to 0 dB for the high shelf
+            const gainValue = (value / 100) * 20;
+            lowShelf.gain.value = gainValue; // Boost low end
+            highShelf.gain.value = -gainValue; // Attenuate high end
             break;
         }
             break;
