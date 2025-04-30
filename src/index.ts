@@ -142,7 +142,11 @@ function updateSynthParameter(param: string, value: number) {
             tilt.setGain((value / 100) * 20)
             break;
         case 'attack':
-            synth.envelope.attack = value / 100; // Map 0-100 to 0-1
+            // Logarithmic mapping: 0-100 to 30 to 20000 Hz
+            const minFreq = 30;
+            const maxFreq = 20000;
+            const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
+            tilt.setPivot(logFreq);
             break;
         case 'release':
             synth.envelope.release = value / 100; // Map 0-100 to 0-1
