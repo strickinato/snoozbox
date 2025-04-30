@@ -1,5 +1,15 @@
 import * as Tone from "tone";
 
+const volumeSlider = document.getElementById('volume') as HTMLInputElement;
+const detuneSlider = document.getElementById('detune') as HTMLInputElement;
+const attackSlider = document.getElementById('attack') as HTMLInputElement;
+const releaseSlider = document.getElementById('release') as HTMLInputElement;
+
+const PIVOT_FREQ = 1000
+
+function mapDetuneValue(normalized) {
+    return (-normalized / 100) * 20
+}
 
 export interface TiltEQOptions {
   pivot?: number; // Frequency in Hz (default 1000)
@@ -13,7 +23,7 @@ export class TiltEQ {
   public input: Tone.Gain;
   public output: Tone.Gain;
 
-  constructor(pivot = 1000, gainDb = 0) {
+  constructor({pivot, gainDb}) {
     const absGain = Math.abs(gainDb);
 
     this.lowShelf = new Tone.Filter({
@@ -62,10 +72,15 @@ export class TiltEQ {
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white");
-const tilt = new TiltEQ({pivot: 1000, gainDb: 4})
+const tilt = new TiltEQ({
+    pivot: PIVOT_FREQ,
+    gainDb: mapDetuneValue(detuneSlider.value)
+})
 
 synth.connect(tilt.input)
-tilt.output.toDestination();
+const output = tilt.output
+output.toDestination()
+
 
 const analyzer = new Tone.Analyser("fft", 1024);
 tilt.output.connect(analyzer);
@@ -121,7 +136,7 @@ function updateSynthParameter(param: string, value: number) {
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
         case 'detune':
-            tilt.setGain((-value / 100) * 20)
+            tilt.setGain(mapDetuneValue(value))
             break;
         case 'attack':
             // Logarithmic mapping: 0-100 to 30 to 20000 Hz
@@ -157,7 +172,3 @@ releaseSlider.addEventListener('input', (event) => {
     const value = parseFloat(releaseSlider.value);
     updateSynthParameter('release', value);
 });
-const volumeSlider = document.getElementById('volume') as HTMLInputElement;
-const detuneSlider = document.getElementById('detune') as HTMLInputElement;
-const attackSlider = document.getElementById('attack') as HTMLInputElement;
-const releaseSlider = document.getElementById('release') as HTMLInputElement;
