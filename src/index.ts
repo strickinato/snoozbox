@@ -172,7 +172,14 @@ function updateSynthParameter(param: string, value: number) {
             const midLFOFreq = 0.05;
             const maxLFOFreq = 10;
             const scaledValue = value / 100; // Normalize to 0-1
-            const lfoFreq = minLFOFreq * Math.pow(midLFOFreq / minLFOFreq, 2 * (0.5 - Math.abs(0.5 - scaledValue))) * Math.pow(maxLFOFreq / midLFOFreq, scaledValue);
+            let lfoFreq;
+            if (scaledValue <= 0.5) {
+                // Lower half: scale from minLFOFreq to midLFOFreq
+                lfoFreq = minLFOFreq * Math.pow(midLFOFreq / minLFOFreq, scaledValue * 2);
+            } else {
+                // Upper half: scale from midLFOFreq to maxLFOFreq
+                lfoFreq = midLFOFreq * Math.pow(maxLFOFreq / midLFOFreq, (scaledValue - 0.5) * 2);
+            }
             console.log(lfoFreq)
             lfo.frequency.value = lfoFreq;
             break;
