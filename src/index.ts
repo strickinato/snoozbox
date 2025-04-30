@@ -5,16 +5,23 @@ console.log("Hello, World!");
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white");
-const tiltFilter = new Tone.Filter({
+const lowShelf = new Tone.Filter({
     type: "lowshelf",
-    frequency: 1000,
+    frequency: 500,
+    gain: 0
+});
+
+const highShelf = new Tone.Filter({
+    type: "highshelf",
+    frequency: 2000,
     gain: 0
 }).toDestination();
 
-synth.connect(tiltFilter);
+synth.connect(lowShelf);
+lowShelf.connect(highShelf);
 
 const analyzer = new Tone.Analyser("fft", 1024);
-tiltFilter.connect(analyzer);
+highShelf.connect(analyzer);
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
 const canvasContext = canvas.getContext('2d')!;
@@ -71,7 +78,8 @@ function updateSynthParameter(param: string, value: number) {
         case 'detune': {
             // Map 0-100 to -20 to 20 dB for the tilt filter gain
             const gainValue = (value / 100) * 40 - 20;
-            tiltFilter.gain.value = gainValue;
+            lowShelf.gain.value = gainValue;
+            highShelf.gain.value = -gainValue; // Inverse gain for high shelf
             break;
         }
             break;
