@@ -138,22 +138,22 @@ function updateSynthParameter(param: string, value: number) {
 }
 
 // Add event listeners to sliders
-document.getElementById('volume')?.addEventListener('input', (event) => {
-    const value = parseFloat((event.target as HTMLInputElement).value);
+volumeSlider.addEventListener('input', (event) => {
+    const value = parseFloat(volumeSlider.value);
     updateSynthParameter('volume', value);
 });
 
-document.getElementById('detune')?.addEventListener('input', (event) => {
-    const value = parseFloat((event.target as HTMLInputElement).value);
+detuneSlider.addEventListener('input', (event) => {
+    const value = parseFloat(detuneSlider.value);
     updateSynthParameter('detune', value);
 });
 
-document.getElementById('attack')?.addEventListener('input', (event) => {
-    const value = parseFloat((event.target as HTMLInputElement).value);
+attackSlider.addEventListener('input', (event) => {
+    const value = parseFloat(attackSlider.value);
     updateSynthParameter('attack', value);
 });
 
-document.getElementById('release')?.addEventListener('input', (event) => {
-    const value = parseFloat((event.target as HTMLInputElement).value);
+releaseSlider.addEventListener('input', (event) => {
+    const value = parseFloat(releaseSlider.value);
     updateSynthParameter('release', value);
 });
