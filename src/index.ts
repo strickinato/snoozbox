@@ -7,18 +7,17 @@ console.log("Hello, World!");
 const synth = new Tone.Noise("white");
 const lowShelf = new Tone.Filter({
     type: "lowshelf",
-    frequency: 500,
+    frequency: 500,   // low shelf pivot
     gain: 0
 });
 
 const highShelf = new Tone.Filter({
     type: "highshelf",
-    frequency: 2000,
+    frequency: 2000,  // high shelf pivot
     gain: 0
 }).toDestination();
 
-synth.connect(lowShelf);
-lowShelf.connect(highShelf);
+synth.chain(lowShelf, highShelf);
 
 const analyzer = new Tone.Analyser("fft", 1024);
 highShelf.connect(analyzer);
@@ -74,15 +73,22 @@ function updateSynthParameter(param: string, value: number) {
             const maxVolume = 0;
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
+function setMorph(morph: number) {
+    // Clamp morph to [0, 1]
+    morph = Math.max(0, Math.min(1, morph));
+
+    // Map morph to tilt in dB:
+    // 0 = 0 dB (white), 0.5 = -3 dB (pink), 1 = -6 dB (brown)
+    const maxTilt = -6; // maximum tilt (in dB)
+    const tilt = morph * maxTilt;
+
+    // Set shelves symmetrically
+    lowShelf.gain.value = -tilt; // low shelf boosted when tilt is negative
+    highShelf.gain.value = tilt; // high shelf cut when tilt is negative
+}
+        case 'detune':
+            setMorph(value / 100); // Map 0-100 to 0.0-1.0 for morph
             break;
-        case 'detune': {
-            // Map 0-100 to 0 to 6 dB for the low shelf and -6 to 0 dB for the high shelf
-            const lowGainValue = (value / 100) * 6; // Boost low end
-            const highGainValue = -(value / 100) * 6; // Attenuate high end
-            lowShelf.gain.value = lowGainValue;
-            highShelf.gain.value = highGainValue;
-            break;
-        }
             break;
         case 'attack':
             synth.envelope.attack = value / 100; // Map 0-100 to 0-1
