@@ -144,8 +144,6 @@ function updateSynthParameter(param: string, value: number) {
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
         case 'detune':
             tilt.setGain(mapDetuneValue(value))
-            // Map 0-100 to 0-10 for the Q value of the bandpass filter
-            bandpassFilter.Q.value = (value / 100) * 10;
             break;
         case 'attack':
             // Map 0-100 to a frequency range for the bandpass filter
@@ -156,6 +154,8 @@ function updateSynthParameter(param: string, value: number) {
             bandpassFilter.frequency.value = logFreq;
             break;
         case 'release':
+            // Map 0-100 to 0-10 for the Q value of the bandpass filter
+            bandpassFilter.Q.value = (value / 100) * 10;
             break;
     }
 }
