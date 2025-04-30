@@ -7,80 +7,62 @@ export interface TiltEQOptions {
 }
 
 export class TiltEQ {
-  private low: Tone.Filter;
-  private high: Tone.Filter;
-  private pivot: number;
-  private gain: number;
+  private lowShelf: Tone.Filter;
+  private highShelf: Tone.Filter;
 
   public input: Tone.Gain;
   public output: Tone.Gain;
 
-  constructor({ pivot = 1000,gain = 0 }: TiltEQOptions = {}) {
-    this.pivot = pivot;
-    this.gain = gain;
+  constructor(pivot = 1000, gainDb = 0) {
+    const absGain = Math.abs(gainDb);
 
-    this.low = new Tone.Filter({
+    this.lowShelf = new Tone.Filter({
       type: "lowshelf",
-      frequency: this.pivot,
-      gain: this.gain,
+      frequency: pivot,
+      gain: gainDb < 0 ? absGain : -absGain,
     });
 
-    this.high = new Tone.Filter({
+    this.highShelf = new Tone.Filter({
       type: "highshelf",
-      frequency: this.pivot,
-      gain: -this.gain,
+      frequency: pivot,
+      gain: gainDb,
     });
 
     this.input = new Tone.Gain();
     this.output = new Tone.Gain();
 
-    // Connect in parallel
-    this.input.connect(this.low);
-    this.input.connect(this.high);
-
-    // Merge filtered signals to output
-    this.low.connect(this.output);
-    this.high.connect(this.output);
+    // Serial chain (not parallel!)
+    this.input.connect(this.lowShelf);
+    this.lowShelf.connect(this.highShelf);
+    this.highShelf.connect(this.output);
   }
 
-  /**
-   * Connect the TiltEQ output to a Tone AudioNode or AudioDestination
-   */
-  connect(destination: Tone.InputNode | AudioNode): void {
-    this.output.connect(destination);
+  connect(dest: Tone.InputNode | AudioNode) {
+    this.output.connect(dest);
   }
 
-  /**
-   * Disconnect the TiltEQ output
-   */
-  disconnect(): void {
-    this.output.disconnect();
+  setGain(gainDb: number) {
+    const absGain = Math.abs(gainDb);
+
+    this.lowShelf.set({
+      gain: gainDb < 0 ? absGain : -absGain,
+    });
+
+    this.highShelf.set({
+      gain: gainDb,
+    });
   }
 
-  /**
-   * Set the tilt gain (positive = brighter, negative = warmer)
-   */
-  setGain(gain: number): void {
-      console.log(gain)
-    this.gain = gain;
-    this.low.set({ gain: this.gain });
-    this.high.set({ gain: -this.gain });
-  }
-
-  /**
-   * Set the pivot frequency (Hz)
-   */
-  setPivot(freq: number): void {
-    this.pivot = freq;
-    this.low.set({ frequency: this.pivot });
-    this.high.set({ frequency: this.pivot });
+  setPivot(freqHz: number) {
+    this.lowShelf.frequency.value = freqHz;
+    this.highShelf.frequency.value = freqHz;
   }
 }
 
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white");
-const tilt = new TiltEQ({pivot: 1000, gain: -4})
+const tilt = new TiltEQ({pivot: 1000, gainDb: 4})
 
 synth.connect(tilt.input)
 tilt.output.toDestination();
@@ -139,13 +121,14 @@ function updateSynthParameter(param: string, value: number) {
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
         case 'detune':
-            tilt.setGain((value / 100) * 20)
+            tilt.setGain((-value / 100) * 20)
             break;
         case 'attack':
             // Logarithmic mapping: 0-100 to 30 to 20000 Hz
-            const minFreq = 30;
+            const minFreq = 40;
             const maxFreq = 20000;
             const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
+            console.log(logFreq)
             tilt.setPivot(logFreq);
             break;
         case 'release':
