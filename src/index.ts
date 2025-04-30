@@ -1,26 +1,92 @@
 import * as Tone from "tone";
 
-console.log("Hello, World!");
+
+export interface TiltEQOptions {
+  pivot?: number; // Frequency in Hz (default 1000)
+  gain?: number;  // Gain in dB (default 0)
+}
+
+export class TiltEQ {
+  private low: Tone.Filter;
+  private high: Tone.Filter;
+  private pivot: number;
+  private gain: number;
+
+  public input: Tone.Gain;
+  public output: Tone.Gain;
+
+  constructor({ pivot = 1000,gain = 0 }: TiltEQOptions = {}) {
+    this.pivot = pivot;
+    this.gain = gain;
+
+    this.low = new Tone.Filter({
+      type: "lowshelf",
+      frequency: this.pivot,
+      gain: this.gain,
+    });
+
+    this.high = new Tone.Filter({
+      type: "highshelf",
+      frequency: this.pivot,
+      gain: -this.gain,
+    });
+
+    this.input = new Tone.Gain();
+    this.output = new Tone.Gain();
+
+    // Connect in parallel
+    this.input.connect(this.low);
+    this.input.connect(this.high);
+
+    // Merge filtered signals to output
+    this.low.connect(this.output);
+    this.high.connect(this.output);
+  }
+
+  /**
+   * Connect the TiltEQ output to a Tone AudioNode or AudioDestination
+   */
+  connect(destination: Tone.InputNode | AudioNode): void {
+    this.output.connect(destination);
+  }
+
+  /**
+   * Disconnect the TiltEQ output
+   */
+  disconnect(): void {
+    this.output.disconnect();
+  }
+
+  /**
+   * Set the tilt gain (positive = brighter, negative = warmer)
+   */
+  setGain(gain: number): void {
+      console.log(gain)
+    this.gain = gain;
+    this.low.set({ gain: this.gain });
+    this.high.set({ gain: -this.gain });
+  }
+
+  /**
+   * Set the pivot frequency (Hz)
+   */
+  setPivot(freq: number): void {
+    this.pivot = freq;
+    this.low.set({ frequency: this.pivot });
+    this.high.set({ frequency: this.pivot });
+  }
+}
 
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white");
-const lowShelf = new Tone.Filter({
-    type: "lowshelf",
-    frequency: 500,   // low shelf pivot
-    gain: 0
-});
+const tilt = new TiltEQ({pivot: 1000, gain: -4})
 
-const highShelf = new Tone.Filter({
-    type: "highshelf",
-    frequency: 2000,  // high shelf pivot
-    gain: 0
-}).toDestination();
-
-synth.chain(lowShelf, highShelf);
+synth.connect(tilt.input)
+tilt.output.toDestination();
 
 const analyzer = new Tone.Analyser("fft", 1024);
-highShelf.connect(analyzer);
+tilt.output.connect(analyzer);
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
 const canvasContext = canvas.getContext('2d')!;
@@ -63,7 +129,6 @@ function togglePlayPause() {
 const playPauseButton = document.getElementById('playPause') as HTMLButtonElement;
 playPauseButton.addEventListener('click', togglePlayPause);
 
-
 // Function to update synth parameters
 function updateSynthParameter(param: string, value: number) {
     switch (param) {
@@ -73,22 +138,8 @@ function updateSynthParameter(param: string, value: number) {
             const maxVolume = 0;
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
-function setMorph(morph: number) {
-    // Clamp morph to [0, 1]
-    morph = Math.max(0, Math.min(1, morph));
-
-    // Map morph to tilt in dB:
-    // 0 = 0 dB (white), 0.5 = -3 dB (pink), 1 = -6 dB (brown)
-    const maxTilt = -6; // maximum tilt (in dB)
-    const tilt = morph * maxTilt;
-
-    // Set shelves symmetrically
-    lowShelf.gain.value = -tilt; // low shelf boosted when tilt is negative
-    highShelf.gain.value = tilt; // high shelf cut when tilt is negative
-}
         case 'detune':
-            setMorph(value / 100); // Map 0-100 to 0.0-1.0 for morph
-            break;
+            tilt.setGain((value / 100) * 20)
             break;
         case 'attack':
             synth.envelope.attack = value / 100; // Map 0-100 to 0-1
