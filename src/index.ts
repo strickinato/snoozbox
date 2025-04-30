@@ -3,8 +3,9 @@ import * as Tone from "tone";
 console.log("Hello, World!");
 
 // Example usage of Tone.js
-const synth = new Tone.Synth().toDestination();
-synth.triggerAttackRelease("C4", "8n");
+// Create a white noise synth
+const synth = new Tone.Noise("white").toDestination();
+synth.start();
 
 
 // Function to update synth parameters
