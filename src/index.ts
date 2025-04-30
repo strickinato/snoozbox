@@ -169,10 +169,11 @@ function updateSynthParameter(param: string, value: number) {
         case 'attack':
             // Non-linear scaling for LFO frequency
             const minLFOFreq = 0.01;
-            const maxLFOFreq = 10;
             const midLFOFreq = 0.05;
+            const maxLFOFreq = 10;
             const scaledValue = value / 100; // Normalize to 0-1
             const lfoFreq = minLFOFreq * Math.pow(midLFOFreq / minLFOFreq, 2 * (0.5 - Math.abs(0.5 - scaledValue))) * Math.pow(maxLFOFreq / midLFOFreq, scaledValue);
+            console.log(lfoFreq)
             lfo.frequency.value = lfoFreq;
             break;
         case 'release':
