@@ -13,6 +13,33 @@ const tiltFilter = new Tone.Filter({
 
 synth.connect(tiltFilter);
 
+const analyzer = new Tone.Analyser("fft", 256);
+tiltFilter.connect(analyzer);
+
+const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
+const canvasContext = canvas.getContext('2d')!;
+
+function drawSpectrum() {
+    requestAnimationFrame(drawSpectrum);
+    const values = analyzer.getValue();
+    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
+    canvasContext.beginPath();
+    canvasContext.moveTo(0, canvas.height);
+
+    values.forEach((value, index) => {
+        const x = (index / values.length) * canvas.width;
+        const y = (1 - (value as number) / 100) * canvas.height;
+        canvasContext.lineTo(x, y);
+    });
+
+    canvasContext.lineTo(canvas.width, canvas.height);
+    canvasContext.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    canvasContext.fill();
+}
+
+drawSpectrum();
+
 let isPlaying = false;
 
 // Function to toggle play/pause
