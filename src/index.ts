@@ -1,5 +1,11 @@
 import * as Tone from "tone";
 
+const VOLUME_MIN = -60;
+const VOLUME_MAX = 0;
+const DETUNE_MAX_GAIN = 20;
+const PIVOT_MIN_FREQ = 30;
+const PIVOT_MAX_FREQ = 20000;
+
 
 export interface TiltEQOptions {
   pivot?: number; // Frequency in Hz (default 1000)
@@ -116,18 +122,14 @@ function updateSynthParameter(param: string, value: number) {
     switch (param) {
         case 'volume':
             // Logarithmic mapping: 0-100 to 0 to -60
-            const minVolume = -60;
-            const maxVolume = 0;
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
-            synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
+            synth.volume.value = VOLUME_MIN + (VOLUME_MAX - VOLUME_MIN) * logValue;
         case 'detune':
-            tilt.setGain((-value / 100) * 20)
+            tilt.setGain((-value / 100) * DETUNE_MAX_GAIN);
             break;
         case 'attack':
             // Logarithmic mapping: 0-100 to 30 to 20000 Hz
-            const minFreq = 40;
-            const maxFreq = 20000;
-            const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
+            const logFreq = PIVOT_MIN_FREQ * Math.pow(PIVOT_MAX_FREQ / PIVOT_MIN_FREQ, value / 100);
             console.log(logFreq)
             tilt.setPivot(logFreq);
             break;
