@@ -73,6 +73,7 @@ function updateSynthParameter(param: string, value: number) {
             const maxVolume = 0;
             const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
             synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
+
 function setMorph(morph: number) {
     // Clamp morph to [0, 1]
     morph = Math.max(0, Math.min(1, morph));
