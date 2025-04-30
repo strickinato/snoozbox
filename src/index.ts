@@ -5,7 +5,23 @@ console.log("Hello, World!");
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white").toDestination();
-synth.start();
+
+let isPlaying = false;
+
+// Function to toggle play/pause
+function togglePlayPause() {
+    if (isPlaying) {
+        synth.stop();
+        playPauseButton.textContent = "Play";
+    } else {
+        synth.start();
+        playPauseButton.textContent = "Pause";
+    }
+    isPlaying = !isPlaying;
+}
+
+const playPauseButton = document.getElementById('playPause') as HTMLButtonElement;
+playPauseButton.addEventListener('click', togglePlayPause);
 
 
 // Function to update synth parameters
