@@ -146,15 +146,8 @@ function updateSynthParameter(param: string, value: number) {
             tilt.setGain(mapDetuneValue(value))
             break;
         case 'attack':
-            // Logarithmic mapping: 0-100 to 30 to 20000 Hz
-            const minFreq = 40;
-            const maxFreq = 20000;
-            const logFreq = minFreq * Math.pow(maxFreq / minFreq, value / 100);
-            console.log(logFreq)
-            tilt.setPivot(logFreq);
             break;
         case 'release':
-            synth.envelope.release = value / 100; // Map 0-100 to 0-1
             break;
     }
 }
