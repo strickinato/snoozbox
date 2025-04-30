@@ -72,6 +72,12 @@ export class TiltEQ {
 // Example usage of Tone.js
 // Create a white noise synth
 const synth = new Tone.Noise("white");
+const bandpassFilter = new Tone.Filter({
+    type: "bandpass",
+    frequency: 1000, // Default frequency
+    Q: 1 // Quality factor
+});
+
 const tilt = new TiltEQ({
     pivot: PIVOT_FREQ,
     gainDb: mapDetuneValue(detuneSlider.value)
@@ -79,7 +85,8 @@ const tilt = new TiltEQ({
 
 synth.connect(tilt.input)
 const output = tilt.output
-output.toDestination()
+output.connect(bandpassFilter);
+bandpassFilter.toDestination();
 
 
 const analyzer = new Tone.Analyser("fft", 1024);
