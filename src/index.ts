@@ -167,7 +167,13 @@ function updateSynthParameter(param: string, value: number) {
             tilt.setGain(mapDetuneValue(value))
             break;
         case 'attack':
-            lfo.frequency.value = value/1000
+            // Non-linear scaling for LFO frequency
+            const minLFOFreq = 0.01;
+            const maxLFOFreq = 10;
+            const midLFOFreq = 0.05;
+            const scaledValue = value / 100; // Normalize to 0-1
+            const lfoFreq = minLFOFreq * Math.pow(maxLFOFreq / minLFOFreq, scaledValue);
+            lfo.frequency.value = lfoFreq;
             break;
         case 'release':
             console.log("release", value/50 + 1)
