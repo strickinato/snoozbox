@@ -28,7 +28,11 @@ playPauseButton.addEventListener('click', togglePlayPause);
 function updateSynthParameter(param: string, value: number) {
     switch (param) {
         case 'volume':
-            synth.volume.value = ((100 - value) / 100) * -60; // Reverse mapping: 0-100 to 0 to -60
+            // Logarithmic mapping: 0-100 to 0 to -60
+            const minVolume = -60;
+            const maxVolume = 0;
+            const logValue = Math.log10(value + 1) / 2; // Scale log value to 0-1
+            synth.volume.value = minVolume + (maxVolume - minVolume) * logValue;
             break;
         case 'detune':
             synth.detune.value = (value / 100) * 2400 - 1200; // Map 0-100 to -1200 to 1200
