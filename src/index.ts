@@ -4,14 +4,14 @@ console.log("Hello, World!");
 
 // Example usage of Tone.js
 // Create a white noise synth
-const noise = new Tone.Noise("white");
+const synth = new Tone.Noise("white");
 const tiltFilter = new Tone.Filter({
     type: "lowshelf",
     frequency: 1000,
     gain: 0
 }).toDestination();
 
-noise.connect(tiltFilter);
+synth.connect(tiltFilter);
 
 let isPlaying = false;
 
