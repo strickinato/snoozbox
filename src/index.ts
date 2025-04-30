@@ -28,16 +28,16 @@ playPauseButton.addEventListener('click', togglePlayPause);
 function updateSynthParameter(param: string, value: number) {
     switch (param) {
         case 'volume':
-            synth.volume.value = value;
+            synth.volume.value = (value / 100) * -60; // Map 0-100 to -60 to 0
             break;
         case 'detune':
-            synth.detune.value = value;
+            synth.detune.value = (value / 100) * 2400 - 1200; // Map 0-100 to -1200 to 1200
             break;
         case 'attack':
-            synth.envelope.attack = value;
+            synth.envelope.attack = value / 100; // Map 0-100 to 0-1
             break;
         case 'release':
-            synth.envelope.release = value;
+            synth.envelope.release = value / 100; // Map 0-100 to 0-1
             break;
     }
 }
