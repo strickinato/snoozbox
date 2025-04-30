@@ -1,76 +1,43 @@
 import * as Tone from "tone";
+import { TiltEQ } from "./TiltEQ.ts"
 
 const volumeSlider = document.getElementById('volume') as HTMLInputElement;
-const tiltSlider = document.getElementById('detune') as HTMLInputElement;
-const attackSlider = document.getElementById('attack') as HTMLInputElement;
-const releaseSlider = document.getElementById('release') as HTMLInputElement;
+const tiltSlider = document.getElementById('tilt') as HTMLInputElement;
+const lfoSlider = document.getElementById('lfo') as HTMLInputElement;
+const qualitySlider = document.getElementById('quality') as HTMLInputElement;
 
 const PIVOT_FREQ = 1000
 
-function mapDetuneValue(normalized) {
-    return (-normalized / 100) * 20
+function mapTiltValue(normal) {
+    return -(normal / 100) * 20
 }
+const initialTiltValue = mapTiltValue(parseFloat(tiltSlider.value));
 
-export interface TiltEQOptions {
-  pivot?: number; // Frequency in Hz (default 1000)
-  gain?: number;  // Gain in dB (default 0)
+function mapVolumeValue(normal) {
+    return normal / 100
 }
+const initialVolumeValue = mapVolumeValue(parseFloat(volumeSlider.value))
 
-export class TiltEQ {
-  private lowShelf: Tone.Filter;
-  private highShelf: Tone.Filter;
-
-  public input: Tone.Gain;
-  public output: Tone.Gain;
-
-  constructor({pivot, gainDb}) {
-    const absGain = Math.abs(gainDb);
-
-    this.lowShelf = new Tone.Filter({
-      type: "lowshelf",
-      frequency: pivot,
-      gain: gainDb < 0 ? absGain : -absGain,
-    });
-
-    this.highShelf = new Tone.Filter({
-      type: "highshelf",
-      frequency: pivot,
-      gain: gainDb,
-    });
-
-    this.input = new Tone.Gain();
-    this.output = new Tone.Gain();
-
-    // Serial chain (not parallel!)
-    this.input.connect(this.lowShelf);
-    this.lowShelf.connect(this.highShelf);
-    this.highShelf.connect(this.output);
-  }
-
-  connect(dest: Tone.InputNode | AudioNode) {
-    this.output.connect(dest);
-  }
-
-  setGain(gainDb: number) {
-    const absGain = Math.abs(gainDb);
-
-    this.lowShelf.set({
-      gain: gainDb < 0 ? absGain : -absGain,
-    });
-
-    this.highShelf.set({
-      gain: gainDb,
-    });
-  }
-
-  setPivot(freqHz: number) {
-    this.lowShelf.frequency.value = freqHz;
-    this.highShelf.frequency.value = freqHz;
-  }
+function mapLfoValue(normal) {
+    // Non-linear scaling for LFO frequency
+    const minLFOFreq = 0.005;
+    const midLFOFreq = 0.05;
+    const maxLFOFreq = 500;
+    const scaledValue = normal / 100; // Normalize to 0-1
+    let lfoFreq;
+    if (scaledValue <= 0.5) {
+        // Lower half: scale from minLFOFreq to midLFOFreq
+        lfoFreq = minLFOFreq * Math.pow(midLFOFreq / minLFOFreq, scaledValue * 2);
+    } else {
+        // Upper half: scale from midLFOFreq to maxLFOFreq
+        lfoFreq = midLFOFreq * Math.pow(maxLFOFreq / midLFOFreq, (scaledValue - 0.5) * 2);
+    }
+    return lfoFreq
 }
+const initialLfoValue = mapLfoValue(parseFloat(lfoSlider.value))
 
-// Example usage of Tone.js
-// Create a white noise synth
+// SET UP THE NODES
+
 const synth = new Tone.Noise("white");
 const crossFade = new Tone.CrossFade(0.5); // Initial mix value
 const bandpassFilter = new Tone.Filter({
@@ -81,40 +48,38 @@ const bandpassFilter = new Tone.Filter({
 
 const tilt = new TiltEQ({
     pivot: PIVOT_FREQ,
-    gainDb: mapDetuneValue(tiltSlider.value)
+    gainDb: initialTiltValue,
 })
 
 const lfo = new Tone.LFO({
-    frequency: 1, // LFO frequency in Hz
-    min: 50,       // Minimum frequency of the bandpass filter
-    max: 10000       // Maximum frequency of the bandpass filter
+    frequency: initialLfoValue,
+    min: 50,
+    max: 10000
 });
 
-const outputGain = new Tone.Gain(0.5)
+const outputGain = new Tone.Gain(initialVolumeValue)
 
-// Connect the LFO to the frequency of the bandpass filter
-
-synth.connect(tilt.input)
-const output = tilt.output
-output.connect(bandpassFilter)
-output.connect(crossFade.a);
+synth.connect(bandpassFilter)
+synth.connect(crossFade.a)
 bandpassFilter.connect(crossFade.b);
-
-crossFade.connect(outputGain);
+crossFade.connect(tilt.input)
+tilt.output.connect(outputGain)
 outputGain.connect(Tone.Destination);
 
 lfo.connect(bandpassFilter.frequency);
 
 lfo.start();
 
+
+
 function setBandpassMix(mix: number) {
-  crossFade.fade.value = mix; // mix should be between 0 (dry) and 1 (wet)
+  ; // mix should be between 0 (dry) and 1 (wet)
 }
 
 
 
 const analyzer = new Tone.Analyser("fft", 1024);
-crossFade.connect(analyzer);
+outputGain.connect(analyzer);
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
 const canvasContext = canvas.getContext('2d')!;
@@ -161,32 +126,16 @@ playPauseButton.addEventListener('click', togglePlayPause);
 function updateSynthParameter(param: string, value: number) {
     switch (param) {
         case 'volume':
-            outputGain.gain.value = value / 100
-
-        case 'detune':
-            tilt.setGain(mapDetuneValue(value))
+            outputGain.gain.value = mapVolumeValue(value)
+        case 'tilt':
+            tilt.setGain(mapTiltValue(value))
             break;
-        case 'attack':
-            // Non-linear scaling for LFO frequency
-            const minLFOFreq = 0.01;
-            const midLFOFreq = 0.05;
-            const maxLFOFreq = 10;
-            const scaledValue = value / 100; // Normalize to 0-1
-            let lfoFreq;
-            if (scaledValue <= 0.5) {
-                // Lower half: scale from minLFOFreq to midLFOFreq
-                lfoFreq = minLFOFreq * Math.pow(midLFOFreq / minLFOFreq, scaledValue * 2);
-            } else {
-                // Upper half: scale from midLFOFreq to maxLFOFreq
-                lfoFreq = midLFOFreq * Math.pow(maxLFOFreq / midLFOFreq, (scaledValue - 0.5) * 2);
-            }
-            console.log(lfoFreq)
-            lfo.frequency.value = lfoFreq;
+        case 'lfo':
+            lfo.frequency.value = mapLfoValue(value)
             break;
-        case 'release':
-            console.log("release", value/50 + 1)
+        case 'quality':
             bandpassFilter.Q.value = value/50 + 1
-            setBandpassMix(value / 100)
+            crossFade.fade.value = (value / 100)
             break;
     }
 }
@@ -199,15 +148,15 @@ volumeSlider.addEventListener('input', (event) => {
 
 tiltSlider.addEventListener('input', (event) => {
     const value = parseFloat(tiltSlider.value);
-    updateSynthParameter('detune', value);
+    updateSynthParameter('tilt', value);
 });
 
-attackSlider.addEventListener('input', (event) => {
-    const value = parseFloat(attackSlider.value);
-    updateSynthParameter('attack', value);
+lfoSlider.addEventListener('input', (event) => {
+    const value = parseFloat(lfoSlider.value);
+    updateSynthParameter('lfo', value);
 });
 
-releaseSlider.addEventListener('input', (event) => {
-    const value = parseFloat(releaseSlider.value);
-    updateSynthParameter('release', value);
+qualitySlider.addEventListener('input', (event) => {
+    const value = parseFloat(qualitySlider.value);
+    updateSynthParameter('quality', value);
 });

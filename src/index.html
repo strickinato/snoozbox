@@ -7,20 +7,20 @@
 </head>
 <body>
     <div>
+        <label for="lfo">LFO</label>
+        <input type="range" id="lfo" min="0" max="100" value="50">
+    </div>
+    <div>
+        <label for="quality">Mix/Q</label>
+        <input type="range" id="quality" min="0" max="100" value="50">
+    </div>
+    <div>
+        <label for="tilt">Tilt</label>
+        <input type="range" id="tilt" min="0" max="100" value="50">
+    </div>
+    <div>
         <label for="volume">Volume</label>
-        <input type="range" id="volume" min="0" max="100" value="20">
-    </div>
-    <div>
-        <label for="detune">Detune</label>
-        <input type="range" id="detune" min="0" max="100" value="50">
-    </div>
-    <div>
-        <label for="attack">Attack</label>
-        <input type="range" id="attack" min="0" max="100" value="50">
-    </div>
-    <div>
-        <label for="release">Release</label>
-        <input type="range" id="release" min="0" max="100" value="50">
+        <input type="range" id="volume" min="0" max="100" value="50">
     </div>
     <button id="playPause">Play</button>
     <canvas id="spectrum" width="600" height="200"></canvas>
