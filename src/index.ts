@@ -1,10 +1,47 @@
 import * as Tone from "tone";
 import { TiltEQ } from "./TiltEQ.ts"
+import { midi, hasMidiPerms } from './Midi.ts'
 
 const volumeSlider = document.getElementById('volume') as HTMLInputElement;
 const tiltSlider = document.getElementById('tilt') as HTMLInputElement;
 const lfoSlider = document.getElementById('lfo') as HTMLInputElement;
 const qualitySlider = document.getElementById('quality') as HTMLInputElement;
+
+const modeSwitcher = document.getElementById('mode') as HTMLInputElement;
+
+
+let MIDI: MIDIAccess | undefined = undefined
+let IS_MIDI_SETUP: boolean = false
+let DAD_MODE = false
+
+async function requestMidiPerms() {
+    return navigator.requestMIDIAccess().then(
+        (midi) => { MIDI = midi; },
+        () => { console.error("failed to get midi perms") },
+    );
+}
+
+function onMidiHandler(e) {
+    console.log(e)
+
+}
+
+modeSwitcher.addEventListener('change', async (e) => {
+    await requestMidiPerms()
+    const checked = e.target.checked
+    console.log(checked)
+    if (checked && MIDI != undefined && !IS_MIDI_SETUP) {
+        console.log("setting up handler")
+        MIDI.inputs.forEach((entry) => {
+            entry.onmidimessage = onMidiHandler;
+        });
+    } else if (MIDI != undefined) {
+        console.log("Trying to remove handler")
+        MIDI.inputs.forEach((entry) => {
+            entry.onmidimessage = null;
+        });
+    }
+})
 
 const PIVOT_FREQ = 1000
 
