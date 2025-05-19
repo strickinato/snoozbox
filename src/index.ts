@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { TiltEQ } from "./TiltEQ.ts"
+import { BabySynth, DadSynth } from "./Synths.ts"
 import { midi, hasMidiPerms } from './Midi.ts'
 
 const volumeSlider = document.getElementById('volume') as HTMLInputElement;
@@ -9,6 +9,10 @@ const qualitySlider = document.getElementById('quality') as HTMLInputElement;
 
 const modeSwitcher = document.getElementById('mode') as HTMLInputElement;
 
+function log(v) {
+    console.log(v)
+    return v
+}
 
 let MIDI: MIDIAccess | undefined = undefined
 let IS_MIDI_SETUP: boolean = false
@@ -21,102 +25,54 @@ async function requestMidiPerms() {
     );
 }
 
+
+const dadSynth = new DadSynth({
+    initialVolume: parseFloat(volumeSlider.value),
+    initialTilt: parseFloat(tiltSlider.value),
+    initialQuality: parseFloat(qualitySlider.value),
+    initialLFO: parseFloat(lfoSlider.value),
+})
+
 function onMidiHandler(e) {
-    console.log(e)
+    const [status, noteNumber, velocity_] = event.data;
+
+    const command = status & 0xF0;
+    if (command === 0x90) {
+        dadSynth.playNote(noteNumber)
+    } else {
+        dadSynth.stopNote(noteNumber)
+    }
 
 }
 
 modeSwitcher.addEventListener('change', async (e) => {
     await requestMidiPerms()
     const checked = e.target.checked
-    console.log(checked)
     if (checked && MIDI != undefined && !IS_MIDI_SETUP) {
-        console.log("setting up handler")
+        console.log("handler")
+        DAD_MODE = true;
+        dadSynth.start()
         MIDI.inputs.forEach((entry) => {
             entry.onmidimessage = onMidiHandler;
         });
     } else if (MIDI != undefined) {
         console.log("Trying to remove handler")
+        DAD_MODE = true;
+        dadSynth.stop()
         MIDI.inputs.forEach((entry) => {
             entry.onmidimessage = null;
         });
     }
 })
 
-const PIVOT_FREQ = 1000
-
-function mapTiltValue(normal) {
-    return -(normal / 100) * 20
-}
-const initialTiltValue = mapTiltValue(parseFloat(tiltSlider.value));
-
-function mapVolumeValue(normal) {
-    return normal / 100
-}
-const initialVolumeValue = mapVolumeValue(parseFloat(volumeSlider.value))
-
-function mapLfoValue(normal) {
-    // Non-linear scaling for LFO frequency
-    const minLFOFreq = 0.01;
-    const midLFOFreq = 0.05;
-    const maxLFOFreq = 500;
-    const scaledValue = normal / 100; // Normalize to 0-1
-    let lfoFreq;
-    if (scaledValue <= 0.5) {
-        // Lower half: scale from minLFOFreq to midLFOFreq
-        lfoFreq = minLFOFreq * Math.pow(midLFOFreq / minLFOFreq, scaledValue * 2);
-    } else {
-        // Upper half: scale from midLFOFreq to maxLFOFreq
-        lfoFreq = midLFOFreq * Math.pow(maxLFOFreq / midLFOFreq, (scaledValue - 0.5) * 2);
-    }
-    return lfoFreq
-}
-const initialLfoValue = mapLfoValue(parseFloat(lfoSlider.value))
-
 // SET UP THE NODES
 
-const synth = new Tone.Noise("white");
-const crossFade = new Tone.CrossFade(0.5); // Initial mix value
-const bandpassFilter = new Tone.Filter({
-    type: "bandpass",
-    frequency: 1000, // Default frequency
-    Q: 2 // Quality factor
-});
-
-const tilt = new TiltEQ({
-    pivot: PIVOT_FREQ,
-    gainDb: initialTiltValue,
+const babySynth = new BabySynth({
+    initialVolume: parseFloat(volumeSlider.value),
+    initialLFO: parseFloat(lfoSlider.value),
+    initialTilt: parseFloat(tiltSlider.value),
 })
-
-const lfo = new Tone.LFO({
-    frequency: initialLfoValue,
-    min: 50,
-    max: 10000
-});
-
-const outputGain = new Tone.Gain(initialVolumeValue)
-
-synth.connect(bandpassFilter)
-synth.connect(crossFade.a)
-bandpassFilter.connect(crossFade.b);
-crossFade.connect(tilt.input)
-tilt.output.connect(outputGain)
-outputGain.connect(Tone.Destination);
-
-lfo.connect(bandpassFilter.frequency);
-
-lfo.start();
-
-
-
-function setBandpassMix(mix: number) {
-  ; // mix should be between 0 (dry) and 1 (wet)
-}
-
-
-
-const analyzer = new Tone.Analyser("fft", 1024);
-outputGain.connect(analyzer);
+const analyzer = babySynth.analyzer()
 
 const canvas = document.getElementById('spectrum') as HTMLCanvasElement;
 const canvasContext = canvas.getContext('2d')!;
@@ -146,34 +102,45 @@ let isPlaying = false;
 
 // Function to toggle play/pause
 function togglePlayPause() {
+    if (DAD_MODE) {
+        babySynth.stop();
+        const note = Math.floor((Math.random() * 50) + 50)
+        dadSynth.playNote(note)
+        setTimeout(() => { dadSynth.stopNote(note) }, 2000)
+        return
+    }
+
     if (isPlaying) {
-        synth.stop();
+        babySynth.stop();
         playPauseButton.textContent = "Play";
     } else {
-        synth.start();
+        babySynth.start();
         playPauseButton.textContent = "Pause";
     }
     isPlaying = !isPlaying;
 }
 
 const playPauseButton = document.getElementById('playPause') as HTMLButtonElement;
-playPauseButton.addEventListener('click', togglePlayPause);
+playPauseButton.addEventListener('pointerdown', togglePlayPause);
 
 // Function to update synth parameters
 function updateSynthParameter(param: string, value: number) {
     switch (param) {
         case 'volume':
-            outputGain.gain.value = mapVolumeValue(value)
+            babySynth.setVolume(value)
+            dadSynth.setVolume(value)
+            break;
         case 'tilt':
-            tilt.setGain(mapTiltValue(value))
+            babySynth.setTilt(value)
+            dadSynth.setTilt(value)
             break;
         case 'lfo':
-            lfo.frequency.value = mapLfoValue(value)
+            babySynth.setLFO(value)
+            dadSynth.setLFO(value)
             break;
         case 'quality':
-            bandpassFilter.Q.value = 2
-            bandpassFilter.gain.value = 1 + (value / 20)
-            crossFade.fade.value = (value / 100)
+            babySynth.setQuality(value)
+            dadSynth.setQuality(value)
             break;
     }
 }
